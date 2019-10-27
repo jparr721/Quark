@@ -1,11 +1,14 @@
+use crate::vector;
+
+use std::ops::{Add, Mul, Sub};
 use num_traits;
-use std::ops::{Add, Mul};
 
 /// The Matrix Struct is a size-aware 2d vector
+#[derive(Debug, Clone)]
 pub struct Matrix<T> {
-    data: Vec<Vec<T>>,
-    nrows: usize,
-    ncols: usize,
+    pub data: Vec<Vec<T>>,
+    pub nrows: usize,
+    pub ncols: usize,
 }
 
 impl<T> Matrix<T> {
@@ -15,6 +18,29 @@ impl<T> Matrix<T> {
             nrows: nrows,
             ncols: ncols,
         }
+    }
+
+    /// Merges one matrix into another one vec by vec
+    pub fn merge(&mut self, other: &mut Matrix<T>) -> Result<(), &'static str>
+    where
+        T: num_traits::Zero + Copy
+    {
+        if other.clone().shape() != self.clone().shape() {
+            return Err("Shape misaslignment");
+        }
+
+        for i in 0..self.data.len() {
+            self.data[i].append(&mut other.data[i]);
+        }
+
+        Ok(())
+    }
+
+    pub fn shape(self) -> Vec<usize>
+    where
+        T: num_traits::Zero + Copy
+    {
+        vec![self.nrows, self.ncols]
     }
 }
 
@@ -37,11 +63,14 @@ where
     }
 }
 
-pub fn matmul<T>(first: Matrix<T>, second: Matrix<T>) -> Matrix<T>
+pub fn matmul<T>(first: Matrix<T>, second: Matrix<T>) -> Result<Matrix<T>, &'static str>
 where
     T: num_traits::Zero + Mul<T, Output = T> + Add<T, Output = T> + Copy,
 {
-    assert_eq!(first.ncols, second.nrows);
+    if first.ncols != second.nrows {
+        return Err("Row-Column mis-alignment");
+    }
+
     let mut vec = vec![vec![T::zero(); first.nrows]; second.ncols];
 
     for i in 0..first.nrows {
@@ -52,12 +81,15 @@ where
         }
     }
 
-    Matrix {
-        data: vec,
-        nrows: first.nrows,
-        ncols: second.ncols,
-    }
+    Ok(
+        Matrix {
+            data: vec,
+            nrows: first.nrows,
+            ncols: second.ncols,
+        }
+    )
 }
+
 
 #[test]
 fn it_makes_matrix() {
@@ -106,5 +138,7 @@ fn it_matrix_multiplies() {
         ncols: 2,
     };
 
-    assert_eq!(matmul(data, data2).data, comp.data);
+    let res = matmul(data, data2).unwrap();
+
+    assert_eq!(res.data, comp.data);
 }

@@ -1,19 +1,46 @@
-use std::ops::Mul;
+use std::ops::{Mul, Add};
+use num_traits;
 
 /// The Vector Struct is a size-aware vector
+#[derive(Debug, Clone)]
 pub struct Vector<T> {
-    data: Vec<T>,
-    nrows: usize,
-    ncols: usize,
+    pub data: Vec<T>,
+    pub nrows: usize,
+    pub ncols: usize,
 }
 
 impl<T> Vector<T> {
-    pub fn new(data: Vec<T>, nrows: usize) -> Vector<T> {
+    pub fn new(data: Vec<T>) -> Vector<T> {
+        let size = data.len();
         Vector {
             data: data,
-            nrows: nrows,
+            nrows: size,
             ncols: 1,
         }
+    }
+
+    pub fn append(&mut self, value: T) {
+        let mut values_list = vec![value];
+        self.data.append(&mut values_list);
+        self.nrows += values_list.len();
+    }
+
+    pub fn shape(self) -> Vec<usize> {
+        vec![self.nrows, self.ncols]
+    }
+
+    pub fn sum_vec(self, init: &T) -> Result<T, &'static str>
+    where
+        T: Copy + Add<T, Output = T>,
+    {
+        if self.data.len() <= 0 {
+            return Err("Data must contain a value to be summed");
+        }
+
+        Ok(
+            self.data.iter().fold(*init, |acc, &item| acc + item)
+        )
+
     }
 }
 
@@ -33,9 +60,25 @@ where
 #[test]
 fn it_makes_vector() {
     let data = vec![0u8; 2];
-    let vec = Vector::new(data.clone(), 2);
+    let vec = Vector::new(data.clone());
 
     assert_eq!(data, vec.data);
+}
+
+#[test]
+fn it_gives_size() {
+    let vec = Vector::new(vec![0, 1, 2, 3]);
+
+    assert_eq!(vec![4, 1], vec.shape());
+}
+
+#[test]
+fn it_sums_vector() {
+    let vec = Vector::new(vec![0, 1, 2]);
+
+    let sum = vec.sum_vec(&0).unwrap();
+
+    assert_eq!(3, sum);
 }
 
 #[test]
