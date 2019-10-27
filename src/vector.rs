@@ -1,5 +1,5 @@
-use std::ops::{Mul, Add};
 use num_traits;
+use std::ops::{Add, Mul};
 
 /// The Vector Struct is a size-aware vector
 #[derive(Debug, Clone)]
@@ -37,10 +37,7 @@ impl<T> Vector<T> {
             return Err("Data must contain a value to be summed");
         }
 
-        Ok(
-            self.data.iter().fold(*init, |acc, &item| acc + item)
-        )
-
+        Ok(self.data.iter().fold(*init, |acc, &item| acc + item))
     }
 }
 

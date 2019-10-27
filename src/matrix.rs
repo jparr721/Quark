@@ -1,7 +1,7 @@
 use crate::vector;
 
-use std::ops::{Add, Mul, Sub};
 use num_traits;
+use std::ops::{Add, Mul, Sub};
 
 /// The Matrix Struct is a size-aware 2d vector
 #[derive(Debug, Clone)]
@@ -23,7 +23,7 @@ impl<T> Matrix<T> {
     /// Merges one matrix into another one vec by vec
     pub fn merge(&mut self, other: &mut Matrix<T>) -> Result<(), &'static str>
     where
-        T: num_traits::Zero + Copy
+        T: num_traits::Zero + Copy,
     {
         if other.clone().shape() != self.clone().shape() {
             return Err("Shape misaslignment");
@@ -38,7 +38,7 @@ impl<T> Matrix<T> {
 
     pub fn shape(self) -> Vec<usize>
     where
-        T: num_traits::Zero + Copy
+        T: num_traits::Zero + Copy,
     {
         vec![self.nrows, self.ncols]
     }
@@ -81,15 +81,19 @@ where
         }
     }
 
-    Ok(
-        Matrix {
-            data: vec,
-            nrows: first.nrows,
-            ncols: second.ncols,
-        }
-    )
+    Ok(Matrix {
+        data: vec,
+        nrows: first.nrows,
+        ncols: second.ncols,
+    })
 }
 
+/// Performs a reduction operation on a given matrix, giving the reduced row echelon form
+pub fn reduce<T>(mat: &mut Matrix<T>)
+where
+    T: num_traits::Zero + Mul<T, Output = T> + Add<T, Output = T> + Sub<T, Output = T> + Copy,
+{
+}
 
 #[test]
 fn it_makes_matrix() {
