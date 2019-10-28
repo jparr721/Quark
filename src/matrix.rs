@@ -131,7 +131,7 @@ where
 
             if j == n - 1 {
                 println!("col: {}", i);
-                return Err("No pivot found")
+                return Err("No pivot found");
             }
         }
 
