@@ -1,7 +1,5 @@
-use crate::vector;
-
 use num_traits;
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 /// The Matrix Struct is a size-aware 2d vector
 #[derive(Debug, Clone)]
@@ -12,11 +10,13 @@ pub struct Matrix<T> {
 }
 
 impl<T> Matrix<T> {
-    pub fn new(data: Vec<Vec<T>>, nrows: usize, ncols: usize) -> Matrix<T> {
+    pub fn new(data: Vec<Vec<T>>) -> Matrix<T> {
+        let rows = data.len();
+        let cols = data[0].len();
         Matrix {
             data: data,
-            nrows: nrows,
-            ncols: ncols,
+            nrows: rows,
+            ncols: cols,
         }
     }
 
@@ -89,16 +89,77 @@ where
 }
 
 /// Performs a reduction operation on a given matrix, giving the reduced row echelon form
-pub fn reduce<T>(mat: &mut Matrix<T>)
+pub fn reduce<T: Eq>(mat: &mut Matrix<T>) -> Result<Matrix<T>, &'static str>
 where
-    T: num_traits::Zero + Mul<T, Output = T> + Add<T, Output = T> + Sub<T, Output = T> + Copy,
+    T: num_traits::Zero
+        + num_traits::One
+        + Mul<T, Output = T>
+        + Add<T, Output = T>
+        + Sub<T, Output = T>
+        + Neg<Output = T>
+        + Div<T, Output = T>
+        + Copy,
 {
+    let exchange = |matrix: &mut Matrix<T>, i: usize, j: usize| {
+        matrix.data.swap(i, j);
+    };
+
+    let scale = |matrix: &mut Matrix<T>, row: usize, factor: T| {
+        for i in 0..matrix.data[row].len() {
+            matrix.data[row][i] = matrix.data[row][i] * factor;
+        }
+    };
+
+    let row_replace = |matrix: &mut Matrix<T>, i: usize, j: usize, factor: T| {
+        for k in 0..matrix.data[j].len() {
+            matrix.data[j][k] = matrix.data[j][k] + (matrix.data[i][k] * factor);
+        }
+    };
+
+    // Reduction steps
+    let n = mat.data.len();
+
+    for i in 0..n {
+        // Find a pivot point
+        for j in i..n {
+            if mat.data[j][i] != T::zero() {
+                if i != j {
+                    exchange(mat, i, j);
+                    break;
+                }
+            }
+
+            if j == n - 1 {
+                println!("col: {}", i);
+                return Err("No pivot found")
+            }
+        }
+
+        // Put zeros below diagonal
+        for j in i + 1..n {
+            row_replace(mat, i, j, -mat.data[j][i] / mat.data[i][i]);
+        }
+    }
+
+    // Back substitution (bottom up)
+    for i in (0..n - 1).rev() {
+        for j in 0..i {
+            row_replace(mat, i, j, -mat.data[j][i] / mat.data[i][i]);
+        }
+    }
+
+    // Add 1's to the diagonal
+    for i in 0..n {
+        scale(mat, i, T::one() / mat.data[i][i]);
+    }
+
+    Ok(mat.clone())
 }
 
 #[test]
 fn it_makes_matrix() {
     let data = vec![vec![0u8; 2]; 2];
-    let mat = Matrix::new(data.clone(), 2, 2);
+    let mat = Matrix::new(data.clone());
 
     assert_eq!(data, mat.data);
 }
@@ -144,5 +205,23 @@ fn it_matrix_multiplies() {
 
     let res = matmul(data, data2).unwrap();
 
+    assert_eq!(res.data, comp.data);
+}
+
+#[test]
+fn it_row_reduces() {
+    let mut mat = Matrix {
+        data: vec![vec![2, 1, 4], vec![1, 2, 5]],
+        nrows: 2,
+        ncols: 3,
+    };
+
+    let comp = Matrix {
+        data: vec![vec![1, 0, 1], vec![0, 1, 2]],
+        nrows: 2,
+        ncols: 3,
+    };
+
+    let res = reduce(&mut mat).unwrap();
     assert_eq!(res.data, comp.data);
 }
