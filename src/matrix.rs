@@ -1,3 +1,4 @@
+use num;
 use num_traits;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
@@ -88,11 +89,31 @@ where
     })
 }
 
-/// Performs a reduction operation on a given matrix, giving the reduced row echelon form
+pub fn abs<T: Eq>(x: T) -> Result<T, String>
+where
+    T: num_traits::Signed
+    + num::Integer
+    + num_traits::Zero
+    + Neg<Output = T>
+    + num_traits::CheckedSub,
+{
+    if x < T::zero() {
+        T::zero()
+            .checked_sub(&x)
+            .ok_or_else(|| String::from("Overflow"))
+    } else {
+        Ok(x)
+    }
+}
+
+/// Performs a reduction operation on a given matrix via gauss-jordan elimination
 pub fn reduce<T: Eq>(mat: &mut Matrix<T>) -> Result<Matrix<T>, &'static str>
 where
     T: num_traits::Zero
+        + num::Integer
         + num_traits::One
+        + num_traits::Signed
+        + num_traits::CheckedSub
         + Mul<T, Output = T>
         + Add<T, Output = T>
         + Sub<T, Output = T>
@@ -100,10 +121,6 @@ where
         + Div<T, Output = T>
         + Copy,
 {
-    let exchange = |matrix: &mut Matrix<T>, i: usize, j: usize| {
-        matrix.data.swap(i, j);
-    };
-
     let scale = |matrix: &mut Matrix<T>, row: usize, factor: T| {
         for i in 0..matrix.data[row].len() {
             matrix.data[row][i] = matrix.data[row][i] * factor;
@@ -118,26 +135,27 @@ where
 
     // Reduction steps
     let n = mat.data.len();
+    let mut irow = 0;
+    let mut icol = 0;
 
-    for i in 0..n {
+    let indxc = &mut vec![T::one();n];
+    let indxr = &mut vec![T::one();n];
+    let ipiv = &mut vec![T::zero();n];
+
+    for i in 1..n {
+        let mut big = T::zero();
         // Find a pivot point
-        for j in i..n {
-            if mat.data[j][i] != T::zero() {
-                if i != j {
-                    exchange(mat, i, j);
-                    break;
+        for j in 1..n {
+            if ipiv[i] != T::one() {
+                for k in 1..n {
+                    if ipiv[k] == T::zero() {
+                        big = abs(mat.data[j][k]).unwrap();
+                        irow = j;
+                        icol = k;
+                    }
                 }
             }
-
-            if j == n - 1 {
-                println!("col: {}", i);
-                return Err("No pivot found");
-            }
-        }
-
-        // Put zeros below diagonal
-        for j in i + 1..n {
-            row_replace(mat, i, j, -mat.data[j][i] / mat.data[i][i]);
+            ipiv[icol] = ipiv[icol] + T::one();
         }
     }
 
