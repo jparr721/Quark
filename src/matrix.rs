@@ -38,20 +38,21 @@ impl<T: fmt::Display> Matrix<T> {
         Ok(())
     }
 
-    pub fn shape(self) -> Vec<usize>
+    pub fn shape(self) -> (usize, usize)
     where
         T: num_traits::Zero + Copy,
     {
-        vec![self.nrows, self.ncols]
+        (self.nrows, self.ncols)
     }
 }
 
 #[macro_export]
 macro_rules! matrix {
-    ($vec1:expr, $vec2:expr) => {{
+    ( $($vec:expr ),* ) => {{
         let mut temp_vec = Vec::new();
-        temp_vec.push($vec1);
-        temp_vec.push($vec2);
+        $(
+            temp_vec.push($vec);
+        )*
         let mat = Matrix::new(temp_vec);
         mat
     }};
@@ -80,19 +81,16 @@ pub fn t<T: fmt::Display>(input: Matrix<T>) -> Matrix<T>
 where
     T: num_traits::Zero + Copy,
 {
-    let mut vec = vec![vec![T::zero(); input.ncols]; input.nrows];
+    let mut t = vec![Vec::with_capacity(input.nrows); input.ncols];
 
-    for i in 0..input.nrows {
-        for j in 0..input.ncols {
-            vec[i][j] = input.data[j][i];
+    for r in input.data {
+        for i in 0..input.nrows {
+            t[i].push(r[i]);
         }
     }
 
-    Matrix {
-        data: vec,
-        nrows: input.ncols,
-        ncols: input.nrows,
-    }
+    let mat = Matrix::new(t);
+    mat
 }
 
 pub fn matmul<T: fmt::Display>(
@@ -232,6 +230,13 @@ where
     }
 
     Ok((mat.clone(), rhs.clone()))
+}
+
+#[test]
+fn it_shows_shape() {
+    let mat = matrix!(vec![0, 1, 2], vec![3, 4, 5]);
+
+    assert_eq!(mat.shape(), (2, 3));
 }
 
 #[test]
