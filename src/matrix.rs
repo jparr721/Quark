@@ -46,6 +46,17 @@ impl<T: fmt::Display> Matrix<T> {
     }
 }
 
+#[macro_export]
+macro_rules! matrix {
+    ($vec1:expr, $vec2:expr) => {{
+        let mut temp_vec = Vec::new();
+        temp_vec.push($vec1);
+        temp_vec.push($vec2);
+        let mat = Matrix::new(temp_vec);
+        mat
+    }};
+}
+
 impl<T: fmt::Display> fmt::Display for Matrix<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut comma_separated = String::new();
@@ -179,13 +190,11 @@ where
         return Err("Singular matrix");
     }
 
-    println!("{}", mat.data[icol][icol]);
     // Take our pivot position
     pivinv = T::one() / mat.data[icol][icol];
 
     // Now, set the pivot spot to one
     mat.data[icol][icol] = T::one();
-    println!("{}", mat.to_string());
 
     // Now perform our scaling on the non-pivot data
     for l in 1..n {
@@ -194,6 +203,7 @@ where
 
     for l in 1..n {
         rhs.data[icol][l] = rhs.data[icol][l] * pivinv;
+        println!("{}", rhs.to_string());
     }
 
     // Reduce the rows ignoring the pivot
@@ -298,4 +308,12 @@ fn it_row_reduces() {
 
     let res = gaussj(&mut mat, &mut rhs).unwrap();
     assert_eq!(res.0.data, comp.data);
+}
+
+#[test]
+fn it_creates_from_macro() {
+    let mat = matrix!(vec![0; 3], vec![0; 3]);
+    let comp = Matrix::new(vec![vec![0; 3], vec![0; 3]]);
+
+    assert_eq!(mat.data, comp.data);
 }
