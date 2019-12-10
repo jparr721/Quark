@@ -5,14 +5,14 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 
 /// The Matrix Struct is a size-aware 2d vector
 #[derive(Debug, Clone)]
-pub struct Matrix<T: fmt::Display> {
-    pub data: Vec<Vec<T>>,
+pub struct Matrix {
+    pub data: Vec<Vec<f64>>,
     pub nrows: usize,
     pub ncols: usize,
 }
 
-impl<T: fmt::Display> Matrix<T> {
-    pub fn new(data: Vec<Vec<T>>) -> Matrix<T> {
+impl Matrix {
+    pub fn new(data: Vec<Vec<f64>>) -> Matrix {
         let rows = data.len();
         let cols = data[0].len();
         Matrix {
@@ -23,10 +23,7 @@ impl<T: fmt::Display> Matrix<T> {
     }
 
     /// Merges one matrix into another one vec by vec
-    pub fn merge(&mut self, other: &mut Matrix<T>) -> Result<(), &'static str>
-    where
-        T: num_traits::Zero + Copy,
-    {
+    pub fn merge(&mut self, other: &mut Matrix) -> Result<(), &'static str> {
         if other.clone().shape() != self.clone().shape() {
             return Err("Shape misaslignment");
         }
@@ -38,10 +35,7 @@ impl<T: fmt::Display> Matrix<T> {
         Ok(())
     }
 
-    pub fn shape(self) -> (usize, usize)
-    where
-        T: num_traits::Zero + Copy,
-    {
+    pub fn shape(self) -> (usize, usize) {
         (self.nrows, self.ncols)
     }
 }
@@ -58,7 +52,7 @@ macro_rules! matrix {
     }};
 }
 
-impl<T: fmt::Display> fmt::Display for Matrix<T> {
+impl fmt::Display for Matrix {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut comma_separated = String::new();
         comma_separated.push_str("[\n");
@@ -77,10 +71,7 @@ impl<T: fmt::Display> fmt::Display for Matrix<T> {
     }
 }
 
-pub fn t<T: fmt::Display>(input: Matrix<T>) -> Matrix<T>
-where
-    T: num_traits::Zero + Copy,
-{
+pub fn t(input: Matrix) -> Matrix {
     let mut t = vec![Vec::with_capacity(input.nrows); input.ncols];
 
     for r in input.data {
@@ -93,18 +84,15 @@ where
     mat
 }
 
-pub fn matmul<T: fmt::Display>(
-    first: Matrix<T>,
-    second: Matrix<T>,
-) -> Result<Matrix<T>, &'static str>
-where
-    T: num_traits::Zero + Mul<T, Output = T> + Add<T, Output = T> + Copy,
-{
+pub fn matmul(
+    first: Matrix,
+    second: Matrix,
+) -> Result<Matrix, &'static str> {
     if first.ncols != second.nrows {
         return Err("Row-Column mis-alignment");
     }
 
-    let mut vec = vec![vec![T::zero(); first.nrows]; second.ncols];
+    let mut vec = vec![vec![0.0; first.nrows]; second.ncols];
 
     for i in 0..first.nrows {
         for j in 0..second.ncols {
@@ -123,35 +111,23 @@ where
 
 /// Performs a reduction operation on a given matrix via gauss-jordan elimination
 pub fn gaussj<T: fmt::Display>(
-    mat: &mut Matrix<T>,
-    rhs: &mut Matrix<T>,
-) -> Result<(Matrix<T>, Matrix<T>), &'static str>
-where
-    T: num_traits::Zero
-        + num::Float
-        + num_traits::One
-        + num_traits::Signed
-        + Mul<T, Output = T>
-        + Add<T, Output = T>
-        + Sub<T, Output = T>
-        + Neg<Output = T>
-        + Div<T, Output = T>
-        + Copy,
-{
+    mat: &mut Matrix,
+    rhs: &mut Matrix,
+) -> Result<(Matrix, Matrix), &'static str> {
     let n = mat.data.len();
     let mut irow = 0;
     let mut icol = 0;
-    let mut pivinv = T::zero();
+    let mut pivinv = 0.0;
 
     let indxc = &mut vec![1; n];
     let indxr = &mut vec![1; n];
-    let ipiv = &mut vec![T::zero(); n];
+    let ipiv = &mut vec![0.0; n];
 
     for i in 0..n {
-        let mut big = T::zero();
+        let mut big = 0.0;
         // Find a pivot point
         for j in 0..n {
-            if ipiv[j] != T::one() {
+            if ipiv[j] != 1.0 {
                 for k in 0..n {
                     if mat.data[j][k].abs() >= big {
                         big = mat.data[j][k].abs();
@@ -159,12 +135,12 @@ where
                         icol = k;
                     }
                 }
-            } else if ipiv[n - 1] > T::one() {
+            } else if ipiv[n - 1] > 1.0 {
                 return Err("Singular matrix");
             }
         }
     }
-    ipiv[icol] = ipiv[icol] + T::one();
+    ipiv[icol] = ipiv[icol] + 1.0;
 
     if irow != icol {
         for l in 0..n {
@@ -184,15 +160,15 @@ where
     indxc[n - 1] = icol;
 
     // Ensure that we aren't dealing with a singular matrix
-    if mat.data[icol][icol] == T::zero() {
+    if mat.data[icol][icol] == 0.0 {
         return Err("Singular matrix");
     }
 
     // Take our pivot position
-    pivinv = T::one() / mat.data[icol][icol];
+    pivinv = 1.0 / mat.data[icol][icol];
 
     // Now, set the pivot spot to one
-    mat.data[icol][icol] = T::one();
+    mat.data[icol][icol] = 1.0;
 
     // Now perform our scaling on the non-pivot data
     for l in 1..n {
