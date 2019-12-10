@@ -110,7 +110,7 @@ pub fn matmul(
 }
 
 /// Performs a reduction operation on a given matrix via gauss-jordan elimination
-pub fn gaussj<T: fmt::Display>(
+pub fn gaussj(
     mat: &mut Matrix,
     rhs: &mut Matrix,
 ) -> Result<(Matrix, Matrix), &'static str> {
@@ -210,14 +210,14 @@ pub fn gaussj<T: fmt::Display>(
 
 #[test]
 fn it_shows_shape() {
-    let mat = matrix!(vec![0, 1, 2], vec![3, 4, 5]);
+    let mat = matrix!(vec![0.0, 1.0, 2.0], vec![3.0, 4.0, 5.0]);
 
     assert_eq!(mat.shape(), (2, 3));
 }
 
 #[test]
 fn it_makes_matrix() {
-    let data = vec![vec![0u8; 2]; 2];
+    let data = vec![vec![0.0; 2]; 2];
     let mat = Matrix::new(data.clone());
 
     assert_eq!(data, mat.data);
@@ -226,13 +226,13 @@ fn it_makes_matrix() {
 #[test]
 fn it_transposes_matrix() {
     let data = Matrix {
-        data: vec![vec![0, 0], vec![1, 1]],
+        data: vec![vec![0.0, 0.0], vec![1.0, 1.0]],
         nrows: 2,
         ncols: 2,
     };
 
     let comp = Matrix {
-        data: vec![vec![0, 1], vec![0, 1]],
+        data: vec![vec![0.0, 1.0], vec![0.0, 1.0]],
         nrows: 2,
         ncols: 2,
     };
@@ -245,19 +245,19 @@ fn it_transposes_matrix() {
 #[test]
 fn it_matrix_multiplies() {
     let data = Matrix {
-        data: vec![vec![1, 2], vec![2, 1]],
+        data: vec![vec![1.0, 2.0], vec![2.0, 1.0]],
         nrows: 2,
         ncols: 2,
     };
 
     let data2 = Matrix {
-        data: vec![vec![2, 1], vec![1, 2]],
+        data: vec![vec![2.0, 1.0], vec![1.0, 2.0]],
         nrows: 2,
         ncols: 2,
     };
 
     let comp = Matrix {
-        data: vec![vec![4, 5], vec![5, 4]],
+        data: vec![vec![4.0, 5.0], vec![5.0, 4.0]],
         nrows: 2,
         ncols: 2,
     };
@@ -293,8 +293,8 @@ fn it_row_reduces() {
 
 #[test]
 fn it_creates_from_macro() {
-    let mat = matrix!(vec![0; 3], vec![0; 3]);
-    let comp = Matrix::new(vec![vec![0; 3], vec![0; 3]]);
+    let mat = matrix!(vec![0.0; 3], vec![0.0; 3]);
+    let comp = Matrix::new(vec![vec![0.0; 3], vec![0.0; 3]]);
 
     assert_eq!(mat.data, comp.data);
 }
