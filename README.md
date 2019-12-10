@@ -7,7 +7,7 @@ This library aims to be a *dead* simple interface for doing linear algebra in ru
 ## Architecture
 This library aims to remove all of the unnecessary parts of developing and working with linear systems. This is a floating-point only and numerically stable library. There are plans to include bindings to nodejs, but those are pending.
 
-### API
+### API - Unstable
 It is trivial to make a 2d matrix and perform operations on it:
 
 ```rust
