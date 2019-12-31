@@ -4,65 +4,112 @@ use std::fmt;
 #[derive(Debug, Clone)]
 pub struct Matrix {
     pub data: Vec<Vec<f64>>,
-    pub nrows: usize,
-    pub ncols: usize,
+    pub rows: usize,
+    pub cols: usize,
 }
 
 impl Matrix {
-    pub fn new(data: Vec<Vec<f64>>) -> Matrix {
-        let rows = data.len();
-        let cols = data[0].len();
+    pub fn new(rows: usize, cols: usize, data: Vec<Vec<f64>>) -> Matrix {
         Matrix {
             data: data,
-            nrows: rows,
-            ncols: cols,
+            rows: rows,
+            cols: cols,
         }
     }
 
-    /// Merges one matrix into another one vec by vec
-    pub fn merge(
-        &mut self,
-        other: &mut Matrix,
-        inplace: Option<bool>,
-    ) -> Result<Option<Matrix>, &'static str> {
-        // This is highly inefficient, need to work on this later...
-        let internal_clone = self.clone();
-        let other_clone = other.clone();
+    pub fn data(&self) -> &Vec<Vec<f64>> {
+        &self.data
+    }
 
-        if other_clone.shape() != internal_clone.shape() {
-            return Err("Shape misaslignment");
-        }
+    pub fn mut_data(&self) -> &mut Vec<[f64]> {
+        &mut self.data
+    }
 
-        if inplace.unwrap_or(true) {
-            for i in 0..self.data.len() {
-                self.data[i].append(&mut other.data[i]);
-            }
-            return Ok(None);
-        }
+    pub fn as_ptr(&self) -> *const Vec<f64> {
+        self.data.as_ptr()
+    }
 
-        let mut clone = self.data.clone();
+    pub fn into_vec(self) -> Vec<Vec<f64>> {
+        self.data
+    }
 
-        for i in 0..clone.len() {
-            clone[i].append(&mut other.data[i]);
-        }
+    pub fn rows(self) -> usize {
+        self.rows
+    }
 
-        Ok(Some(Matrix::new(clone)))
+    pub fn cols(self) -> usize {
+        self.cols
     }
 
     pub fn shape(self) -> (usize, usize) {
-        (self.nrows, self.ncols)
+        (self.rows, self.cols)
     }
 
-    pub fn mean(self) -> Result<Option<Matrix>, &'static str> {
-        if self.nrows < 1 {
+    pub fn zeros(rows: usize, cols: usize) -> Matrix {
+        Matrix {
+            rows: rows,
+            cols: cols,
+            data: vec![vec![0.0; rows]; cols],
+        }
+    }
+
+    pub fn ones(rows: usize, cols: usize) -> Matrix {
+        Matrix {
+            rows: rows,
+            cols: cols,
+            data: vec![vec![1.0; rows]; cols],
+        }
+    }
+
+    pub fn len(self) -> usize {
+        self.data.len()
+    }
+
+    pub fn scale(&mut self, row: usize, factor: f64) -> Result<Matrix, &'static str> {
+        if row < 0 {
+            return Err("Invalid row dimension");
+        }
+
+        let n = self.data[row].len();
+
+        let mut matrix = self.clone();
+
+        for i in 0..n {
+            matrix.data[row][i] *= factor;
+        }
+
+        Ok(matrix)
+    }
+
+    pub fn row_replacement(
+        mut self,
+        i: usize,
+        j: usize,
+        factor: f64,
+    ) -> Result<Matrix, &'static str> {
+        if i < 0 || j < 0 {
+            return Err("Invalid row or column dimension");
+        }
+
+        let mut matrix = self.clone();
+
+        for k in 0..matrix.data[j].len() {
+            matrix.data[j][k] += matrix.data[i][k] * factor;
+        }
+
+        Ok(matrix)
+    }
+
+    pub fn mean_matrix(self) -> Result<Option<Matrix>, &'static str> {
+        if self.rows < 1 {
             return Err("Matrix height must be greater than 0");
         }
 
-        let mut out = Matrix::new(vec![Vec::with_capacity(1); self.ncols]);
+        let mut out = Matrix::new(self.rows, self.cols, vec![Vec::with_capacity(1); self.cols]);
 
-        for i in 0..self.ncols {
-            let mut col = vec![0.0; self.nrows];
-            for j in 0..self.nrows {
+        for i in 0..self.cols {
+            let mut col = vec![0.0; self.rows];
+            for j in 0..self.rows {
                 col.push(self.data[j][i]);
             }
 
@@ -73,54 +120,43 @@ impl Matrix {
         Ok(Some(out))
     }
 
-    pub fn t(&mut self, inplace: bool) -> Result<Option<Matrix>, &'static str> {
-        if self.nrows < 1 || self.ncols < 1 {
+    pub fn t(&mut self) -> Result<Matrix, &'static str> {
+        if self.rows < 1 || self.cols < 1 {
             return Err("Data must be present to transpose");
         }
 
-        let mut t = vec![Vec::with_capacity(self.nrows); self.ncols];
+        let mut t = vec![Vec::with_capacity(self.rows); self.cols];
 
         for r in &mut self.data {
-            for i in 0..self.nrows {
+            for i in 0..self.rows {
                 t[i].push(r[i]);
             }
         }
 
-        if inplace {
-            self.data = t;
-            Ok(None)
-        } else {
-            Ok(Some(Matrix::new(t)))
-        }
+        Ok(Matrix::new(self.rows, self.cols, t))
     }
 
     pub fn swap(
         &mut self,
         p: usize,
         q: usize,
-        inplace: Option<bool>,
-    ) -> Result<Option<Matrix>, &'static str> {
-        if self.nrows < 2 {
+    ) -> Result<Matrix, &'static str> {
+        let mut matrix_data = self.data.clone();
+        if self.rows < 2 {
             return Err("There must be at least 2 rows in order to swap");
         }
 
-        if p > self.nrows || q > self.nrows {
+        if p > self.rows || q > self.rows {
             return Err("You cannot specify a p less than the matrix height");
         }
 
         if p == q {
-            if inplace.unwrap_or(true) {
-                return Ok(None);
-            }
+            return Ok(*self);
         }
 
-        self.data.swap(p, q);
+        matrix_data.swap(p, q);
 
-        if inplace.unwrap_or(true) {
-            return Ok(Some(self.clone()));
-        }
-
-        Ok(None)
+        Ok(Matrix::new(matrix_data.len(), matrix_data[0].len(), matrix_data))
     }
 }
 
@@ -144,15 +180,15 @@ impl fmt::Display for Matrix {
 }
 
 pub fn matmul(first: Matrix, second: Matrix) -> Result<Matrix, &'static str> {
-    if first.ncols != second.nrows {
+    if first.cols != second.rows {
         return Err("Row-Column mis-alignment");
     }
 
-    let mut vec = vec![vec![0.0; first.nrows]; second.ncols];
+    let mut vec = vec![vec![0.0; first.rows]; second.cols];
 
-    for i in 0..first.nrows {
-        for j in 0..second.ncols {
-            for k in 0..second.nrows {
+    for i in 0..first.rows {
+        for j in 0..second.cols {
+            for k in 0..second.rows {
                 vec[i][j] = vec[i][j] + first.data[i][k] * second.data[k][j];
             }
         }
@@ -160,9 +196,28 @@ pub fn matmul(first: Matrix, second: Matrix) -> Result<Matrix, &'static str> {
 
     Ok(Matrix {
         data: vec,
-        nrows: first.nrows,
-        ncols: second.ncols,
+        rows: first.rows,
+        cols: second.cols,
     })
+}
+
+pub fn rowreduce(mat: &mut Matrix) -> Result<Matrix, &'static str> {
+    let matrix = mat.clone();
+    let n = matrix.rows();
+
+    for i in 0..n {
+        // Find a pivot point
+        for j in i..n {
+            if matrix.data[j][i] != 0.0 {
+                if i != j {
+                    // matrix = matrix.swap(i, j).unwrap();
+                    break;
+                }
+            }
+        }
+    }
+
+    Ok(matrix)
 }
 
 /// Performs a reduction operation on a given matrix via gauss-jordan elimination
@@ -280,14 +335,14 @@ fn it_makes_matrix() {
 fn it_transposes_matrix() {
     let mut data = Matrix {
         data: vec![vec![0.0, 0.0], vec![1.0, 1.0]],
-        nrows: 2,
-        ncols: 2,
+        rows: 2,
+        cols: 2,
     };
 
     let comp = Matrix {
         data: vec![vec![0.0, 1.0], vec![0.0, 1.0]],
-        nrows: 2,
-        ncols: 2,
+        rows: 2,
+        cols: 2,
     };
 
     data.t(true).unwrap();
@@ -299,20 +354,20 @@ fn it_transposes_matrix() {
 fn it_matrix_multiplies() {
     let data = Matrix {
         data: vec![vec![1.0, 2.0], vec![2.0, 1.0]],
-        nrows: 2,
-        ncols: 2,
+        rows: 2,
+        cols: 2,
     };
 
     let data2 = Matrix {
         data: vec![vec![2.0, 1.0], vec![1.0, 2.0]],
-        nrows: 2,
-        ncols: 2,
+        rows: 2,
+        cols: 2,
     };
 
     let comp = Matrix {
         data: vec![vec![4.0, 5.0], vec![5.0, 4.0]],
-        nrows: 2,
-        ncols: 2,
+        rows: 2,
+        cols: 2,
     };
 
     let res = matmul(data, data2).unwrap();
@@ -324,20 +379,20 @@ fn it_matrix_multiplies() {
 fn it_row_reduces() {
     let mut mat = Matrix {
         data: vec![vec![2.0, 1.0, 4.0], vec![1.0, 2.0, 5.0]],
-        nrows: 2,
-        ncols: 3,
+        rows: 2,
+        cols: 3,
     };
 
     let mut rhs = Matrix {
         data: vec![vec![0.0; 3], vec![0.0; 3]],
-        nrows: 2,
-        ncols: 3,
+        rows: 2,
+        cols: 3,
     };
 
     let comp = Matrix {
         data: vec![vec![1.0, 0.0, 1.0], vec![0.0, 1.0, 2.0]],
-        nrows: 2,
-        ncols: 3,
+        rows: 2,
+        cols: 3,
     };
 
     let res = gaussj(&mut mat, &mut rhs).unwrap();
