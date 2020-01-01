@@ -21,7 +21,7 @@ impl Matrix {
         &self.data
     }
 
-    pub fn mut_data(&self) -> &mut Vec<[f64]> {
+    pub fn mut_data(&mut self) -> &mut Vec<Vec<f64>> {
         &mut self.data
     }
 
