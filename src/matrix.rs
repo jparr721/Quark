@@ -171,7 +171,7 @@ pub fn row_replacement(matrix: &mut Matrix, i: usize, j: usize, factor: f64) {
     }
 }
 
-pub fn scale(matrix: &mut Matrix, row: usize, factor: f64) {
+pub fn scale_row(matrix: &mut Matrix, row: usize, factor: f64) {
     let n = matrix.cols;
 
     for i in 0..n {
@@ -179,48 +179,48 @@ pub fn scale(matrix: &mut Matrix, row: usize, factor: f64) {
     }
 }
 
-pub fn rowreduce(mat: &mut Matrix) -> Result<Matrix, &'static str> {
-    let n = mat.clone().rows();
+pub fn rowreduce(matrix: &mut Matrix) -> Result<Matrix, &'static str> {
+    let n = matrix.clone().rows();
 
     for i in 0..n {
         // Find a pivot point
         for j in i..n {
-            if mat.data[j][i] != 0.0 {
+            if matrix.data[j][i] != 0.0 {
                 if i != j {
-                    mat.swap(i, j);
+                    matrix.swap(i, j);
                 }
                 break;
             }
 
             if j == n - 1 {
-                return Err("No pivots found in matrix!");
+                return Err("No pivots found in matrixrix!");
             }
         }
 
         for j in i + 1..n {
-            row_replacement(mat, i, j, -mat.data[j][i] / mat.data[i][i]);
+            row_replacement(matrix, i, j, -matrix.data[j][i] / matrix.data[i][i]);
         }
     }
 
     // Back subsitution
     for i in (0..n).rev() {
         for j in 0..i {
-            row_replacement(mat, i, j, -mat.data[j][i] / mat.data[i][i]);
+            row_replacement(matrix, i, j, -matrix.data[j][i] / matrix.data[i][i]);
         }
     }
 
     // Ones along diagonal
     for i in 0..n {
-        scale(mat, i, 1.0 / mat.data[i][i]);
+        scale_row(matrix, i, 1.0 / matrix.data[i][i]);
     }
 
-    let matrix = Matrix {
-        rows: mat.clone().len(),
-        cols: mat.data[0].len(),
-        data: mat.data.clone(),
+    let new_matrix = Matrix {
+        rows: matrix.clone().len(),
+        cols: matrix.data[0].len(),
+        data: matrix.data.clone(),
     };
 
-    Ok(matrix)
+    Ok(new_matrix)
 }
 
 /// Performs a reduction operation on a given matrix via gauss-jordan elimination
