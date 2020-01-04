@@ -17,6 +17,14 @@ impl Matrix {
         }
     }
 
+    pub fn from_mat(rows: &usize, cols: &usize, data: &Vec<Vec<f64>>) -> Matrix {
+        Matrix {
+            data: data.clone(),
+            rows: *rows,
+            cols: *cols,
+        }
+    }
+
     pub fn data(&self) -> &Vec<Vec<f64>> {
         &self.data
     }
@@ -101,27 +109,18 @@ impl Matrix {
         Ok(Matrix::new(self.rows, self.cols, t))
     }
 
-    pub fn swap(
-        self,
-        p: usize,
-        q: usize,
-    ) -> Result<Matrix, &'static str> {
-        let mut matrix_data = self.data.clone();
-        if self.rows < 2 {
-            return Err("There must be at least 2 rows in order to swap");
-        }
+    pub fn swap(&mut self, p: usize, q: usize) {
+        assert!(
+            self.rows >= 2,
+            "There must be at least 2 rows in order to swap"
+        );
 
-        if p > self.rows || q > self.rows {
-            return Err("You cannot specify a p less than the matrix height");
-        }
+        assert!(
+            p < self.rows && q < self.rows,
+            "You cannot specify a p less than the matrix height"
+        );
 
-        if p == q {
-            return Ok(self);
-        }
-
-        matrix_data.swap(p, q);
-
-        Ok(Matrix::new(matrix_data.len(), matrix_data[0].len(), matrix_data))
+        self.data.swap(p, q);
     }
 }
 
@@ -166,38 +165,31 @@ pub fn matmul(first: Matrix, second: Matrix) -> Result<Matrix, &'static str> {
     })
 }
 
-pub fn row_replacement(
-    matrix: &mut Matrix,
-    i: usize,
-    j: usize,
-    factor: f64,
-) {
+pub fn row_replacement(matrix: &mut Matrix, i: usize, j: usize, factor: f64) {
     for k in 0..matrix.data[j].len() {
         matrix.data[j][k] += matrix.data[i][k] * factor;
     }
 }
 
 pub fn scale(matrix: &mut Matrix, row: usize, factor: f64) {
-    let n = matrix.rows;
+    let n = matrix.cols;
 
     for i in 0..n {
         matrix.data[row][i] *= factor;
     }
 }
 
-
-pub fn rowreduce(mat: Matrix) -> Result<Matrix, &'static str> {
-    let mut clone = mat.clone();
-    let n = clone.rows;
+pub fn rowreduce(mat: &mut Matrix) -> Result<Matrix, &'static str> {
+    let n = mat.clone().rows();
 
     for i in 0..n {
         // Find a pivot point
         for j in i..n {
-            if clone.data[j][i] != 0.0 {
+            if mat.data[j][i] != 0.0 {
                 if i != j {
-                    clone.swap(i, j);
-                    break;
+                    mat.swap(i, j);
                 }
+                break;
             }
 
             if j == n - 1 {
@@ -205,27 +197,27 @@ pub fn rowreduce(mat: Matrix) -> Result<Matrix, &'static str> {
             }
         }
 
-        for j in i+1..n {
-            row_replacement(&mut clone, i, j, -clone.data[j][i] / clone.data[i][i]);
+        for j in i + 1..n {
+            row_replacement(mat, i, j, -mat.data[j][i] / mat.data[i][i]);
         }
     }
 
     // Back subsitution
-    for i in (0..n-1).rev() {
+    for i in (0..n).rev() {
         for j in 0..i {
-            row_replacement(&mut clone, i, j, -clone.data[j][i] / clone.data[i][i]);
+            row_replacement(mat, i, j, -mat.data[j][i] / mat.data[i][i]);
         }
     }
 
     // Ones along diagonal
     for i in 0..n {
-        scale(&mut clone, i, 1.0 / clone.data[i][i])
+        scale(mat, i, 1.0 / mat.data[i][i]);
     }
 
     let matrix = Matrix {
-        rows: clone.len(),
-        cols: clone.data[0].len(),
-        data: clone.data,
+        rows: mat.clone().len(),
+        cols: mat.data[0].len(),
+        data: mat.data.clone(),
     };
 
     Ok(matrix)
@@ -329,7 +321,7 @@ pub fn gaussj(mat: &mut Matrix, rhs: &mut Matrix) -> Result<(Matrix, Matrix), &'
 
 #[test]
 fn it_shows_shape() {
-    let mat = Matrix::new(vec![vec![0.0, 1.0, 2.0], vec![3.0, 4.0, 5.0]]);
+    let mat = Matrix::new(2, 3, vec![vec![0.0, 1.0, 2.0], vec![3.0, 4.0, 5.0]]);
 
     assert_eq!(mat.shape(), (2, 3));
 }
@@ -337,7 +329,7 @@ fn it_shows_shape() {
 #[test]
 fn it_makes_matrix() {
     let data = vec![vec![0.0; 2]; 2];
-    let mat = Matrix::new(data.clone());
+    let mat = Matrix::new(2, 2, data.clone());
 
     assert_eq!(data, mat.data);
 }
@@ -356,9 +348,9 @@ fn it_transposes_matrix() {
         cols: 2,
     };
 
-    data.t(true).unwrap();
+    let res = data.t().unwrap();
 
-    assert_eq!(comp.data, data.data);
+    assert_eq!(comp.data, res.data);
 }
 
 #[test]
@@ -394,26 +386,12 @@ fn it_row_reduces() {
         cols: 3,
     };
 
-    let mut rhs = Matrix {
-        data: vec![vec![0.0; 3], vec![0.0; 3]],
-        rows: 2,
-        cols: 3,
-    };
-
     let comp = Matrix {
         data: vec![vec![1.0, 0.0, 1.0], vec![0.0, 1.0, 2.0]],
         rows: 2,
         cols: 3,
     };
 
-    let res = gaussj(&mut mat, &mut rhs).unwrap();
-    assert_eq!(res.0.data, comp.data);
-}
-
-#[test]
-fn it_creates_from_macro() {
-    let mat = Matrix::new(vec![vec![0.0; 3], vec![0.0; 3]]);
-    let comp = Matrix::new(vec![vec![0.0; 3], vec![0.0; 3]]);
-
-    assert_eq!(mat.data, comp.data);
+    let res = rowreduce(&mut mat).unwrap();
+    assert_eq!(res.data, comp.data);
 }
