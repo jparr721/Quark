@@ -12,15 +12,14 @@ It is trivial to make a 2d matrix and perform operations on it:
 
 ```rust
 fn main() {
-  let mat = matrix!(vec![1,2,3], vec![4,5,6])
+  let mat = Matrix::new(2, 3, vec![vec![1,2,3], vec![4,5,6]]);
 
   // Now, we can perform operations
   // Transpose:
-  let transposed_mat = t(mat);
+  let transposed_mat = mat.t();
 
   // Gauss-Jordan row reduction
-  let rhs = Matrix::new(vec![vec![0.0;3], vec![0.0;3]])
-  let reduced_mat = gaussj(mat, rhs);
+  let reduced_mat = rowreduce(mat); //rref form
 }
 ```
 
