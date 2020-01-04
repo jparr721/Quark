@@ -65,41 +65,6 @@ impl Matrix {
         self.data.len()
     }
 
-    pub fn scale(&mut self, row: usize, factor: f64) -> Result<Matrix, &'static str> {
-        if row < 0 {
-            return Err("Invalid row dimension");
-        }
-
-        let n = self.data[row].len();
-
-        let mut matrix = self.clone();
-
-        for i in 0..n {
-            matrix.data[row][i] *= factor;
-        }
-
-        Ok(matrix)
-    }
-
-    pub fn row_replacement(
-        mut self,
-        i: usize,
-        j: usize,
-        factor: f64,
-    ) -> Result<Matrix, &'static str> {
-        if i < 0 || j < 0 {
-            return Err("Invalid row or column dimension");
-        }
-
-        let mut matrix = self.clone();
-
-        for k in 0..matrix.data[j].len() {
-            matrix.data[j][k] += matrix.data[i][k] * factor;
-        }
-
-        Ok(matrix)
-    }
-
     pub fn mean_matrix(self) -> Result<Option<Matrix>, &'static str> {
         if self.rows < 1 {
             return Err("Matrix height must be greater than 0");
@@ -137,7 +102,7 @@ impl Matrix {
     }
 
     pub fn swap(
-        &mut self,
+        self,
         p: usize,
         q: usize,
     ) -> Result<Matrix, &'static str> {
@@ -151,7 +116,7 @@ impl Matrix {
         }
 
         if p == q {
-            return Ok(*self);
+            return Ok(self);
         }
 
         matrix_data.swap(p, q);
@@ -201,21 +166,67 @@ pub fn matmul(first: Matrix, second: Matrix) -> Result<Matrix, &'static str> {
     })
 }
 
-pub fn rowreduce(mat: &mut Matrix) -> Result<Matrix, &'static str> {
-    let matrix = mat.clone();
-    let n = matrix.rows();
+pub fn row_replacement(
+    matrix: &mut Matrix,
+    i: usize,
+    j: usize,
+    factor: f64,
+) {
+    for k in 0..matrix.data[j].len() {
+        matrix.data[j][k] += matrix.data[i][k] * factor;
+    }
+}
+
+pub fn scale(matrix: &mut Matrix, row: usize, factor: f64) {
+    let n = matrix.rows;
+
+    for i in 0..n {
+        matrix.data[row][i] *= factor;
+    }
+}
+
+
+pub fn rowreduce(mat: Matrix) -> Result<Matrix, &'static str> {
+    let mut clone = mat.clone();
+    let n = clone.rows;
 
     for i in 0..n {
         // Find a pivot point
         for j in i..n {
-            if matrix.data[j][i] != 0.0 {
+            if clone.data[j][i] != 0.0 {
                 if i != j {
-                    // matrix = matrix.swap(i, j).unwrap();
+                    clone.swap(i, j);
                     break;
                 }
             }
+
+            if j == n - 1 {
+                return Err("No pivots found in matrix!");
+            }
+        }
+
+        for j in i+1..n {
+            row_replacement(&mut clone, i, j, -clone.data[j][i] / clone.data[i][i]);
         }
     }
+
+    // Back subsitution
+    for i in (0..n-1).rev() {
+        for j in 0..i {
+            row_replacement(&mut clone, i, j, -clone.data[j][i] / clone.data[i][i]);
+        }
+    }
+
+    // Ones along diagonal
+    for i in 0..n {
+        scale(&mut clone, i, 1.0 / clone.data[i][i])
+    }
+
+    let matrix = Matrix {
+        rows: clone.len(),
+        cols: clone.data[0].len(),
+        data: clone.data,
+    };
 
     Ok(matrix)
 }
