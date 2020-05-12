@@ -70,6 +70,37 @@ impl Matrix {
         }
     }
 
+    pub fn identity(n: usize) -> Matrix {
+        let vecs = vec![];
+        for i in 0..n {
+            let vec = vec![0.0;n];
+            vec[i] = 1.0;
+            vecs.push(vec)
+        }
+
+        Matrix {
+            rows: n,
+            cols: n,
+            data: vecs,
+        }
+    }
+
+    pub fn reverse_identity(n: usize) -> Matrix {
+        let vecs = vec![];
+
+        for i in (0..n).rev() {
+            let vec = vec![0.0;n];
+            vec[i] = 1.0;
+            vecs.push(vec);
+        }
+
+        Matrix {
+            rows: n,
+            cols: n,
+            data: vecs,
+        }
+    }
+
     pub fn len(self) -> usize {
         self.data.len()
     }
@@ -166,6 +197,21 @@ impl fmt::Display for Matrix {
         comma_separated.push_str("]");
         write!(f, "{}", comma_separated)
     }
+}
+
+pub fn pivot_matrix(matrix: &mut Matrix) -> Result<Matrix, &'static str> {
+    let n = matrix.len();
+
+    assert_eq!(matrix.rows(), matrix.cols(), "Error! Matrix must be square");
+
+    let pivot_matrix = Matrix::identity(matrix.rows());
+
+    // Put the largest values of matrix on the diagonal
+    for i in 0..n {
+        // let row = std::cmp::max(
+    }
+
+    Ok(matrix)
 }
 
 pub fn row_replacement(matrix: &mut Matrix, i: usize, j: usize, factor: f64) {
